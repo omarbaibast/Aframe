@@ -1,0 +1,78 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>UWC Alumni VR - PS4 Controller Test</title>
+    <script src="https://aframe.io/releases/1.4.2/aframe.min.js"></script>
+    <script>
+      // CUSTOM COMPONENT: ps4-controls
+      AFRAME.registerComponent('ps4-controls', {
+        schema: {
+          speed: { type: 'number', default: 0.1 },
+          lookSensitivity: { type: 'number', default: 2.0 }
+        },
+
+        tick: function (time, td) {
+          // 1. Get all connected gamepads
+          const gamepads = navigator.getGamepads ? navigator.getGamepads() : [];
+          const gp = gamepads[0]; // Assuming the PS4 controller is the first one
+
+          if (!gp) return;
+
+          // 2. Axis Mapping (Standard PS4 Layout)
+          // Axis 0 & 1: Left Stick (Horizontal / Vertical)
+          // Axis 2 & 3: Right Stick (Horizontal / Vertical)
+          const leftStickX = gp.axes[0];
+          const leftStickY = gp.axes[1];
+          const rightStickX = gp.axes[2];
+          const rightStickY = gp.axes[3];
+
+          // 3. Handle Movement (Left Stick)
+          if (Math.abs(leftStickX) > 0.1 || Math.abs(leftStickY) > 0.1) {
+            const el = this.el;
+            const rotation = el.getAttribute('rotation');
+            
+            // Convert rotation to radians for trig
+            const angle = rotation.y * (Math.PI / 180);
+            
+            // Calculate movement vector relative to where we are looking
+            const x = leftStickX * Math.cos(angle) + leftStickY * Math.sin(angle);
+            const z = leftStickX * Math.sin(angle) - leftStickY * Math.cos(angle);
+
+            const pos = el.getAttribute('position');
+            el.setAttribute('position', {
+              x: pos.x + x * this.data.speed,
+              y: pos.y,
+              z: pos.z + z * this.data.speed
+            });
+          }
+
+          // 4. Handle Rotation (Right Stick)
+          if (Math.abs(rightStickX) > 0.1) {
+            const rotation = this.el.getAttribute('rotation');
+            rotation.y -= rightStickX * this.data.lookSensitivity;
+            this.el.setAttribute('rotation', rotation);
+          }
+          
+          // 5. Interaction (Example: Press 'X' (Button 0) to change floor color)
+          if (gp.buttons[0].pressed) {
+             document.querySelector('#floor').setAttribute('color', 'green');
+          }
+        }
+      });
+    </script>
+  </head>
+  <body>
+    <a-scene>
+      <a-sky color="#87CEEB"></a-sky>
+      <a-plane id="floor" position="0 0 0" rotation="-90 0 0" width="20" height="20" color="#7BC8A4"></a-plane>
+      
+      <a-box position="-2 0.5 -3" color="#EF2D5E" shadow></a-box>
+      <a-sphere position="0 1.25 -5" radius="1.25" color="#4CC3D9" shadow></a-sphere>
+      <a-cylinder position="2 0.75 -3" radius="0.5" height="1.5" color="#FFC107" shadow></a-cylinder>
+
+      <a-entity id="rig" position="0 1.6 0" ps4-controls>
+        <a-camera look-controls-enabled="false" wasd-controls-enabled="false"></a-camera>
+      </a-entity>
+    </a-scene>
+  </body>
+</html>
